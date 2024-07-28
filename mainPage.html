@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .sidebar {
+      float: left;
+      width: 200px;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .content {
+      margin-left: 220px;
+      padding: 20px;
+    }
+    .category, .product {
+      margin: 10px 0;
+      cursor: pointer;
+    }
+    .search-bar {
+      margin-bottom: 20px;
+      padding: 10px;
+      width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      background-color: #007BFF;
+      color: white;
+    }
+    .logo {
+      height: 50px;
+    }
+    .status {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-left: 5px;
+    }
+    .red {
+      background-color: red;
+    }
+    .green {
+      background-color: green;
+    }
+    .product {
+      display: flex;
+      align-items: center;
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .product img {
+      margin-right: 10px;
+      cursor: pointer;
+    }
+    .product div {
+      margin-right: 10px;
+    }
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgb(0,0,0);
+      background-color: rgba(0,0,0,0.4);
+      padding-top: 60px;
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  </style>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+  <div class="top-bar">
+    <div style="display: flex; align-items: center;">
+      <img src="https://pbs.twimg.com/profile_images/728480222803283968/3MRLMSAy_400x400.jpg" alt="AutoMart Logo" class="logo">
+      <h1 style="margin-left: 10px;">AUTOMART</h1>
+    </div>
+    <input type="text" id="search" class="search-bar" placeholder="Search in AutoMart">
+  </div>
+  <div class="sidebar">
+    <h3>Categories</h3>
+    <div id="categories"></div>
+  </div>
+  <div class="content">
+    <h3>Products</h3>
+    <div id="products"></div>
+  </div>
+
+  <!-- Modal Popup -->
+  <div id="myModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 id="productTitle">Product Sales Insights</h2>
+      <div id="chart_div"></div>
+    </div>
+  </div>
+
+  <!-- Return Button -->
+  <div style="margin: 20px;">
+    <button onclick="returnToMainPage()">Return</button>
+  </div>
+
+  <script>
+    var originalData = null;
+
+    google.script.run
+      .withSuccessHandler(function(data) {
+        originalData = data;
+        displayCategoriesAndProducts(data);
+      })
+      .getCategoriesAndProducts();
+
+    function displayCategoriesAndProducts(data) {
+      var categoriesDiv = document.getElementById('categories');
+      var productsDiv = document.getElementById('products');
+
+      categoriesDiv.innerHTML = ''; // Clear previous categories
+      productsDiv.innerHTML = ''; // Clear previous products
+
+      data.categories.forEach(function(category) {
+        var categoryDiv = document.createElement('div');
+        categoryDiv.className = 'category';
+        categoryDiv.innerText = category;
+        categoryDiv.onclick = function() {
+          filterByCategory(category);
+        };
+        categoriesDiv.appendChild(categoryDiv);
+      });
+
+      data.products.forEach(function(product) {
+        var stockColor = product.stock < 15 ? 'red' : 'green';
+        var expiryColor = new Date(product.expiryDate) - new Date() < 30 * 24 * 60 * 60 * 1000 ? 'red' : 'green';
+
+        var productDiv = document.createElement('div');
+        productDiv.className = 'product';
+        productDiv.innerHTML = `
+          <img src="${product.imageUrl}" alt="${product.name}" style="width:50px;height:50px;" onclick="showModal('${product.name}')">
+          <div>
+            <div><strong>${product.name}</strong></div>
+            <div>Stock: ${product.stock} <span class="status ${stockColor}"></span></div>
+            <div>Expiry Date: ${product.expiryDate} <span class="status ${expiryColor}"></span></div>
+          </div>
+        `;
+        productsDiv.appendChild(productDiv);
+      });
+    }
+
+    function filterByCategory(category) {
+      var filteredProducts = originalData.products.filter(function(product) {
+        return product.category === category;
+      });
+      displayCategoriesAndProducts({ categories: originalData.categories, products: filteredProducts });
+    }
+
+    document.getElementById('search').addEventListener('input', function() {
+      var searchText = this.value.toLowerCase();
+      var filteredProducts = originalData.products.filter(function(product) {
+        return product.name.toLowerCase().includes(searchText);
+      });
+      displayCategoriesAndProducts({ categories: originalData.categories, products: filteredProducts });
+    });
+
+    function returnToMainPage() {
+      displayCategoriesAndProducts(originalData);
+    }
+
+
+    // Modal handling
+    var modal = document.getElementById("myModal");
+    var span = document.getElementsByClassName("close")[0];
+
+    google.charts.load('current', {'packages':['corechart']});
+
+    function showModal(productName) {
+      document.getElementById("productTitle").innerText = productName + " Sales Insights";
+      google.script.run.withSuccessHandler(drawChart).getProductSalesData(productName);
+      modal.style.display = "block";
+    }
+
+    function drawChart(data) {
+      var monthsOrder = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
+      var dataArray = [['Month', 'Sales']];
+      for (var i = 0; i < monthsOrder.length; i++) {
+        var month = monthsOrder[i];
+        if (data[month] !== undefined) {
+          dataArray.push([month, data[month]]);
+        }
+      }
+      var dataTable = google.visualization.arrayToDataTable(dataArray);
+
+      var options = {
+        title: 'Sales from January to July',
+        curveType: 'function',
+        legend: { position: 'bottom' }
+      };
+
+      var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+      chart.draw(dataTable, options);
+    }
+
+    span.onclick = function() {
+      modal.style.display = "none";
+    }
+
+    window.onclick = function(event) {
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html>
