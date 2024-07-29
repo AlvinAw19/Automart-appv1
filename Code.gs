@@ -1,3 +1,5 @@
+// the code below is an extension from the google sheets: 'https://docs.google.com/spreadsheets/d/1sgSuWNdGhaiK7NBgEC_OsOKZ2vHsHGrwZ-mjeERCnnk/edit?usp=sharing'
+
 function doGet() {
   checkAndSendEmails();
   return HtmlService.createHtmlOutputFromFile('loginPage');
